@@ -3,6 +3,7 @@ import pandas as pd
 import  plotly.express as px
 import numpy as np
 import pandas as pd
+from predict import predict_rainfall
 import joblib
 
 app = Flask(__name__)
@@ -202,9 +203,17 @@ def predict():
         return render_template('predict.html', prediction=prediction, year=year, subdivision=subdivision, subdivisions=subdivisions, years=years)
     return render_template('predict.html', subdivisions=subdivisions, years=years)  
 
-
+@app.route('/map')
+def map():
+    rain =  load_data()
+    rain.sort_values(by="YEAR", inplace=True)
+    fig = px.scatter_mapbox(
+        rain, lat="Latitude", lon="Longitude", color="ANNUAL", size="ANNUAL",
+        color_continuous_scale=px.colors.sequential.Plasma, size_max=50, zoom=3,
+        mapbox_style="carto-positron", title='Annual Rainfall in India', height=800,
+        animation_frame='YEAR', animation_group='SUBDIVISION'
+    )
+    return render_template('map.html', fig= fig.to_html())
     
-
-
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=8000, debug=True)
