@@ -1,10 +1,13 @@
-from flask import Flask, render_template,request
+from flask import Flask, render_template,request,redirect
 import pandas as pd
 import  plotly.express as px
 import numpy as np
 import pandas as pd
 from predict import predict_rainfall
 import joblib
+from database import Feedback
+from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy import create_engine
 
 app = Flask(__name__)
 
@@ -19,6 +22,11 @@ def predict_rainfall(year, subdivision):
 def load_data():
     df = pd.read_csv('dataset/data.csv')
     return df 
+
+def getdb():
+    engine = create_engine('sqlite:///app.sqlite', echo=True)
+    db = scoped_session(sessionmaker(bind=engine))
+    return db
 
 @app.route('/')
 def index():
@@ -214,6 +222,22 @@ def map():
         animation_frame='YEAR', animation_group='SUBDIVISION'
     )
     return render_template('map.html', fig= fig.to_html())
+
+@app.route('/feedback', methods=['GET', 'POST'])
+def feedback():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        email = request.form.get('email')
+        message = request.form.get('message')
+        if len(name) == 0 or len(message) == 0:
+            print('Name or message is empty')
+        else:
+            db = getdb()
+            db.add(Feedback(name=name, email=email, message=message))
+            db.commit()
+            db.close()
+            return redirect('/feedback')
+    return render_template('feedback.html')
     
 if __name__ == '__main__':
   app.run(host='0.0.0.0', port=8000, debug=True)
